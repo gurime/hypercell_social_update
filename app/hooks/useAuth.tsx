@@ -7,6 +7,7 @@ import { getSupabaseBrowserClient } from '../utils/supabase/client'
 type Profile = {
 first_name: string | null
 last_name: string | null
+hidden_categories: string[] | null
 }
 
 export function useAuth() {
@@ -32,7 +33,7 @@ return
 try {
 const { data, error: profileError } = await supabase
 .from('profiles')
-.select('first_name, last_name')
+.select('first_name, last_name, hidden_categories')
 .eq('id', u.id)
 .maybeSingle()
 

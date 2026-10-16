@@ -68,24 +68,24 @@ toast.error("Failed to log out. Please try again.");
 }
 
 const menuGroups = [
-  [
-    { href: "/profile", label: "Profile", icon: UserRound },
-    { href: "/account", label: "My account", icon: UserRound },
-    { href: "/settings", label: "Settings", icon: Settings },
-  ],
-  [
-    { href: "/my-posts", label: "My posts", icon: FileText },
-    { href: "/saved", label: "Saved", icon: Bookmark },
-  ],
-  [
-    { href: "/help", label: "Help center", icon: CircleHelp },
-    { href: "/terms", label: "Terms & Privacy", icon: Shield },
-    {
-      href: "/advertise",
-      label: "Advertise on Hypercell Social",
-      icon: Megaphone,
-    },
-  ],
+[
+{ href: "/profile", label: "Profile", icon: UserRound },
+{ href: "/account", label: "My account", icon: UserRound },
+{ href: "/settings", label: "Settings", icon: Settings },
+],
+[
+{ href: "/my-posts", label: "My posts", icon: FileText },
+{ href: "/saved", label: "Saved", icon: Bookmark },
+],
+[
+{ href: "/help", label: "Help center", icon: CircleHelp },
+{ href: "/terms", label: "Terms & Privacy", icon: Shield },
+{
+href: "/advertise",
+label: "Advertise on Hypercell Social",
+icon: Megaphone,
+},
+],
 ];
 
 return (
@@ -139,10 +139,9 @@ role="status"
 type="button"
 onClick={() => router.push("/create-post")}
 aria-label="Create post"
-className="flex items-center gap-2 rounded-full p-2 hover:text-blue-300"
+className="flex items-center  rounded-full p-2 bg-blue-400  hover:text-white hover:bg-blue-500 cursor-pointer"
 >
 <Pencil className="h-6 w-6" />
-<span className="hidden sm:inline">Note</span>
 </button>
 
 <button
@@ -154,50 +153,50 @@ aria-label={`Account menu for ${accountName}`}
 className="flex h-10 items-center rounded-full bg-blue-600 text-sm font-semibold hover:bg-blue-500 sm:max-w-48 sm:px-4"
 >
 {/* initial on mobile, full name on sm+ */}
-<span className="flex h-10 w-10 items-center justify-center sm:hidden">
+<span className="flex h-10 w-10 items-center justify-center sm:hidden cursor-pointer">
 {accountName.charAt(0).toUpperCase()}
 </span>
-<span className="hidden truncate sm:inline">{accountName}</span>
+<span className="hidden truncate sm:inline cursor-pointer">{accountName}</span>
 </button>
 
 {open && (
 <div
-  id="account-menu"
-  className="absolute right-0 top-full z-20 mt-2 w-56 max-w-[calc(100vw-1.5rem)] rounded border border-slate-200 bg-blue-950 py-1 text-white shadow-lg"
+id="account-menu"
+className="absolute right-0 top-full z-20 mt-2 w-56 max-w-[calc(100vw-1.5rem)] rounded border border-slate-200 bg-blue-950 py-1 text-white shadow-lg"
 >
-  {menuGroups.map((group, i) => (
-    <div key={i} className={i > 0 ? "border-t border-slate-200" : ""}>
- {group.map((item) => {
-  const Icon = item.icon;
+{menuGroups.map((group, i) => (
+<div key={i} className={i > 0 ? "border-t border-slate-200" : ""}>
+{group.map((item) => {
+const Icon = item.icon;
 
-  return (
-    <Link
-      key={item.href}
-      href={item.href}
-      onClick={() => setOpen(false)}
-      className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-blue-900"
-    >
-      <Icon className="h-4 w-4 shrink-0 text-blue-300" />
-      <span>{item.label}</span>
-    </Link>
-  );
+return (
+<Link
+key={item.href}
+href={item.href}
+onClick={() => setOpen(false)}
+className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-blue-900"
+>
+<Icon className="h-4 w-4 shrink-0 text-blue-300" />
+<span>{item.label}</span>
+</Link>
+);
 })}
-    </div>
-  ))}
+</div>
+))}
 
-  {error && (
-    <p role="status" className="border-t border-slate-200 px-4 py-2 text-xs text-amber-300">
-      Profile details could not be loaded. Showing your account name instead.
-    </p>
-  )}
+{error && (
+<p role="status" className="border-t border-slate-200 px-4 py-2 text-xs text-amber-300">
+Profile details could not be loaded. Showing your account name instead.
+</p>
+)}
 
 <button
-  type="button"
-  onClick={handleLogout}
-  className="flex w-full items-center gap-3 border-t border-slate-200 px-4 py-3 text-left text-sm hover:bg-blue-900 cursor-pointer"
+type="button"
+onClick={handleLogout}
+className="flex w-full items-center gap-3 border-t border-slate-200 px-4 py-3 text-left text-sm hover:bg-blue-900 cursor-pointer"
 >
-  <LogOut className="h-4 w-4 shrink-0" />
-  <span>Log out</span>
+<LogOut className="h-4 w-4 shrink-0" />
+<span>Log out</span>
 </button>
 </div>
 )}

@@ -92,6 +92,10 @@ className="h-4 w-4 shrink-0 text-green-300/80"
 }
 
 export default function Footer() {
+const CURRENT_YEAR = 2026;
+
+
+ 
 return (
 <footer className="mt-auto border-t border-white/10 bg-blue-950 text-white">
 <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-5 py-12 sm:px-8 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-8">
@@ -163,10 +167,10 @@ Business
 {/* Copyright bar */}
 <div className="border-t border-white/10">
 <div className="mx-auto flex max-w-7xl flex-col gap-2 px-5 py-5 text-xs text-white/50 sm:px-8 md:flex-row md:items-center md:justify-between">
-<p>
-&copy; {new Date().getFullYear()} Hypercell Social. All rights
-reserved.
-</p>
+   <p>
+      &copy; {CURRENT_YEAR} Hypercell Social. All rights reserved.
+    </p>
+ 
 
 <p>Built for connection and community.</p>
 </div>

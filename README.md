@@ -20,6 +20,17 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Supabase community feed
+
+Apply `supabase/migrations/20261016200000_create_notes_and_category_preferences.sql`
+to your Supabase project before using the feed by running it in the Supabase
+SQL Editor. It creates the notes feed, allows authenticated note creation,
+and adds per-profile hidden community preferences.
+
+For persistent Good and Cold note reactions, also apply
+`supabase/migrations/20261016203000_add_note_reactions.sql` after the notes
+migration.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
