@@ -70,7 +70,7 @@ toast.error("Failed to log out. Please try again.");
 const menuGroups = [
 [
 { href: "/profile", label: "Profile", icon: UserRound },
-{ href: "/account", label: "My account", icon: UserRound },
+
 { href: "/settings", label: "Settings", icon: Settings },
 ],
 [
