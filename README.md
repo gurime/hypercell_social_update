@@ -31,6 +31,18 @@ For persistent Good and Cold note reactions, also apply
 `supabase/migrations/20261016203000_add_note_reactions.sql` after the notes
 migration.
 
+For persistent replies to notes and letters, apply
+`supabase/migrations/20261017170000_add_note_replies.sql` after the notes
+migration. Replies are publicly readable and can only be created by signed-in
+users on their own account.
+
+For the rotating daily question poll and its discussion, apply
+`supabase/migrations/20261017180000_add_daily_questions.sql`. For projects that
+already applied that migration, also apply
+`supabase/migrations/20261017190000_lock_daily_question_votes.sql`. Poll results
+are public, each signed-in user can vote once per day, and discussion replies
+are publicly readable and require sign-in to create.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

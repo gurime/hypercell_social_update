@@ -2,46 +2,26 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import DailyQuestionCard from "./components/daily-question-card";
 import {
 Activity,
-Atom,
-BookOpen,
-Church,
-Clapperboard,
-Cpu,
 EyeOff,
-Gamepad2,
+ChevronDown,
 Heart,
 HeartCrack,
-House,
-MapPin,
 MessageCircle,
-Newspaper,
+Reply,
 Send,
-Shirt,
 Sparkles,
-Trophy,
 UsersRound,
-Utensils,
 } from "lucide-react";
 import { useAuth } from "./hooks/useAuth";
 import Footer from "./components/footer";
 import Navbar from "./components/navbar";
+import { categories } from "./components/categories";
 
-const categories = [
-{ name: "Politics", icon: Newspaper },
-{ name: "Tech", icon: Cpu },
-{ name: "Gaming", icon: Gamepad2 },
-{ name: "Fashion", icon: Shirt },
-{ name: "Faith", icon: Church },
-{ name: "LGBTQ+", icon: Heart },
-{ name: "Sports", icon: Trophy },
-{ name: "Entertainment", icon: Clapperboard },
-{ name: "Science", icon: Atom },
-{ name: "Books", icon: BookOpen },
-{ name: "Food", icon: Utensils },
-{ name: "Local", icon: MapPin },
-] as const;
+
 
 type Category = (typeof categories)[number]["name"];
 type FeedCategory = "All notes" | Category;
@@ -104,56 +84,52 @@ activeCategory,
 visibleCategories,
 onSelect,
 onHide,
-compact = false,
 }: {
 activeCategory: FeedCategory;
 visibleCategories: readonly Category[];
 onSelect: (category: FeedCategory) => void;
 onHide?: (category: Category) => void;
-compact?: boolean;
 }) {
-const buttonClassName = compact
-? "flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-semibold transition"
-: "flex w-full items-center gap-3 rounded-full px-4 py-2.5 text-left text-sm font-semibold transition";
-
 return (
-<>
+<details className="group relative w-full">
+<summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-2 text-sm font-semibold text-white marker:hidden">
+<span>{activeCategory === "All notes" ? "All communities" : activeCategory}</span>
+<ChevronDown
+aria-hidden="true"
+className="h-4 w-4 shrink-0 text-white/70 transition group-open:rotate-180"
+/>
+</summary>
+<div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-80 overflow-y-auto bg-blue-950 py-1 shadow-xl ring-1 ring-white/10">
 <button
 type="button"
-onClick={() => onSelect("All notes")}
-aria-pressed={activeCategory === "All notes"}
-className={`${buttonClassName} ${
+onClick={(event) => {
+onSelect("All notes");
+event.currentTarget.closest("details")?.removeAttribute("open");
+}}
+aria-current={activeCategory === "All notes" ? "true" : undefined}
+className={`block w-full px-3 py-2 text-left text-sm ${
 activeCategory === "All notes"
-? "bg-blue-950 text-white shadow-sm"
-: "text-slate-600 hover:bg-blue-50 hover:text-blue-950"
+? "font-bold text-white"
+: "text-white/75 hover:bg-white/10 hover:text-white"
 }`}
 >
-<House aria-hidden="true" className="h-4 w-4" />
-All notes
+All communities
 </button>
-{visibleCategories.map((name) => {
-const category = categories.find((item) => item.name === name);
-if (!category) return null;
-const Icon = category.icon;
-
-return (
-<div
-  key={name}
-  className={`group flex items-center gap-1 ${
-    compact ? "w-max shrink-0" : "min-w-0"
-  }`}
->
+{visibleCategories.map((name) => (
+<div key={name} className="flex items-center">
 <button
 type="button"
-onClick={() => onSelect(name)}
-aria-pressed={activeCategory === name}
-className={`${buttonClassName} min-w-0 ${
+onClick={(event) => {
+onSelect(name);
+event.currentTarget.closest("details")?.removeAttribute("open");
+}}
+aria-current={activeCategory === name ? "true" : undefined}
+className={`min-w-0 flex-1 px-3 py-2 text-left text-sm ${
 activeCategory === name
-? "bg-blue-950 text-white shadow-sm"
-: "text-slate-600 hover:bg-blue-50 hover:text-blue-950"
+? "font-bold text-white"
+: "text-white/75 hover:bg-white/10 hover:text-white"
 }`}
 >
-<Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
 {name}
 </button>
 {onHide && (
@@ -162,15 +138,15 @@ type="button"
 onClick={() => onHide(name)}
 aria-label={`Hide ${name} category`}
 title={`Hide ${name}`}
-className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-blue-700"
+className="px-3 py-2 text-white/55 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-blue-300"
 >
 <EyeOff aria-hidden="true" className="h-4 w-4" />
 </button>
 )}
 </div>
-);
-})}
-</>
+))}
+</div>
+</details>
 );
 }
 
@@ -196,6 +172,8 @@ userId: string;
 categories: Category[];
 } | null>(null);
 const [errorMessage, setErrorMessage] = useState("");
+const [showCommunityPicker, setShowCommunityPicker] = useState(false);
+const [discoveryIndex, setDiscoveryIndex] = useState(0);
 
 const hiddenCategories = (
 hiddenCategoriesOverride && user?.id === hiddenCategoriesOverride.userId
@@ -212,25 +190,27 @@ activeCategory === "All notes"
 : notes.filter((note) => note.category === activeCategory);
 const characterLimit = kind === "note" ? 255 : 400;
 
-const categoryActivity = new Map<Category, number>();
 const communityNotes = notes.filter(
 (note) => !hiddenCategories.includes(note.category),
 );
-for (const note of communityNotes) {
-categoryActivity.set(
-note.category,
-(categoryActivity.get(note.category) ?? 0) + 1,
-);
-}
 
+// Rank notes by real reactions and recency, rather than how many notes
+// happen to exist in each category. This makes Trending more meaningful.
 const trendingNotes = [...communityNotes]
-.sort(
-(left, right) =>
-(categoryActivity.get(right.category) ?? 0) -
-(categoryActivity.get(left.category) ?? 0) ||
-new Date(right.createdAt).getTime() -
-new Date(left.createdAt).getTime(),
-)
+.sort((left, right) => {
+const score = (note: Note) => {
+const reactions = reactionSummaries[note.id];
+const reactionScore = (reactions?.good ?? 0) + (reactions?.cold ?? 0);
+const ageHours = Math.max(
+0,
+(Date.now() - new Date(note.createdAt).getTime()) / (1000 * 60 * 60),
+);
+const recencyScore = Math.max(0, 72 - ageHours) / 24;
+return reactionScore * 5 + recencyScore;
+};
+
+return score(right) - score(left);
+})
 .slice(0, 3);
 
 useEffect(() => {
@@ -468,10 +448,29 @@ setIsSubmitting(false);
 }
 
 function selectCategory(category: FeedCategory) {
-  setActiveCategory(category);
-  if (category !== "All notes") {
-    setComposeCategory(category);
-  }
+setActiveCategory(category);
+if (category !== "All notes") {
+setComposeCategory(category);
+}
+}
+
+function selectCommunity(category: Category) {
+selectCategory(category);
+setShowCommunityPicker(false);
+document.getElementById("community-feed")?.scrollIntoView({
+behavior: "smooth",
+block: "start",
+});
+}
+
+function discoverPerspective() {
+const alternatives = visibleCategories.filter(
+(category) => category !== activeCategory,
+);
+const choices = alternatives.length > 0 ? alternatives : visibleCategories;
+const category = choices[discoveryIndex % choices.length];
+setDiscoveryIndex((currentIndex) => currentIndex + 1);
+if (category) selectCommunity(category);
 }
 
 return (
@@ -511,15 +510,11 @@ may not be available until the Supabase migration is applied.
 </p>
 )}
 
-<nav
-aria-label="Note categories"
-className="mb-3 flex gap-2 overflow-x-auto pb-2 md:hidden"
->
+<nav aria-label="Note categories" className="mb-3 md:hidden">
 <CategoryList
 activeCategory={activeCategory}
 visibleCategories={visibleCategories}
 onSelect={selectCategory}
-compact
 />
 </nav>
 <details className="mb-5 rounded-xl border border-white/20 bg-white/10 p-3 text-white md:hidden">
@@ -553,21 +548,21 @@ Show {category}
 </details>
 
 <div className="grid items-start gap-6 md:grid-cols-[200px_minmax(0,1fr)] lg:grid-cols-[220px_minmax(0,1fr)_260px]">
-<aside className="sticky top-24 hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:block">
-<h2 className="px-4 pb-3 pt-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+<aside className="sticky top-24 hidden p-3 md:block">
+<h2 className="pb-3 pt-2 text-xs font-bold uppercase tracking-[0.16em] text-white/60">
 Communities
 </h2>
-<nav aria-label="Note categories" className="space-y-1">
+<nav aria-label="Note categories">
 <CategoryList
-  activeCategory={activeCategory}
-  visibleCategories={visibleCategories}
-  onSelect={selectCategory}   // was setActiveCategory
-  onHide={(category) => void toggleCategory(category, true)}
+activeCategory={activeCategory}
+visibleCategories={visibleCategories}
+onSelect={selectCategory}
+onHide={(category) => void toggleCategory(category, true)}
 />
 </nav>
 {hiddenCategories.length > 0 && (
-<div className="mt-4 border-t border-slate-100 pt-3">
-<h3 className="px-3 pb-2 text-xs font-semibold text-slate-500">
+<div className="mt-4 pt-3">
+<h3 className="pb-2 text-xs font-semibold text-white/60">
 Hidden communities
 </h3>
 {hiddenCategories.map((category) => (
@@ -575,7 +570,7 @@ Hidden communities
 key={category}
 type="button"
 onClick={() => void toggleCategory(category, false)}
-className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-950"
+className="flex w-full items-center justify-between px-1 py-2 text-left text-sm text-white/75 hover:text-white"
 >
 {category}
 <span aria-hidden="true">+</span>
@@ -588,10 +583,10 @@ More interests, more perspectives, one welcoming place.
 </p>
 </aside>
 
-<section aria-label="Community notes" className="min-w-0">
+<section id="community-feed" aria-label="Community notes" className="min-w-0 scroll-mt-24">
 <form
 onSubmit={handleSubmit}
-className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+className="mb-5 rounded-2xl border border-slate-200 p-4 shadow-sm sm:p-5"
 >
 <div className="mb-4 flex items-center gap-3">
 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-800">
@@ -600,10 +595,10 @@ user?.email?.charAt(0).toUpperCase() ??
 "Y"}
 </div>
 <div className="min-w-0">
-<p className="text-sm font-semibold text-slate-800">
+<p className="text-sm font-semibold text-white">
 {kind === "note" ? "Share a note" : "Write a letter"}
 </p>
-<p className="text-xs text-slate-500">
+<p className="text-xs text-white">
 Choose a community for your {kind}.
 </p>
 </div>
@@ -687,7 +682,7 @@ aria-live="polite"
 className={`text-xs ${
 message.length >= characterLimit - 15
 ? "font-semibold text-amber-700"
-: "text-slate-500"
+: "text-white"
 }`}
 >
 {message.length}/{characterLimit} characters
@@ -742,7 +737,7 @@ Loading notes...
 {visibleNotes.map((note) => (
 <article
 key={note.id}
-className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-blue-200 sm:p-5"
+className="rounded-2xl border border-slate-200 text-white p-4 shadow-sm transition hover:border-blue-200 sm:p-5"
 >
 <div className="flex items-start gap-3">
 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-100 to-cyan-100 text-sm font-bold text-blue-800">
@@ -750,28 +745,38 @@ className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition
 </div>
 <div className="min-w-0 flex-1">
 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-<span className="text-sm font-bold text-slate-900">
+<Link
+href={`/profile/${note.authorId}`}
+className="text-sm font-bold text-white hover:underline"
+>
 {note.author}
-</span>
+</Link>
 <time
 dateTime={note.createdAt}
-className="text-sm text-slate-500"
+className="text-sm text-white"
 >
 · {formatTime(note.createdAt)}
 </time>
-<span className="ml-auto rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">
+<span className="ml-auto rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-500">
 {note.category}
 </span>
 </div>
-{note.kind === "letter" && note.title && (
-<h3 className="mt-3 text-base font-bold text-slate-900">
-{note.title}
-</h3>
-)}
-<p className="mt-2 whitespace-pre-wrap wrap-break-word text-[15px] leading-6 text-slate-800">
+{note.kind === "letter" ? (
+<Link
+href={`/letter/${note.id}`}
+className="mt-3 block rounded-xl border border-white/15 bg-white/5 p-4 transition hover:border-blue-300 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300"
+aria-label={`Read letter: ${note.title || `Letter from ${note.author}`}`}
+>
+<span className="block text-base font-bold text-white">
+{note.title || `A letter from ${note.author}`}
+</span>
+</Link>
+) : (
+<p className="mt-2 whitespace-pre-wrap wrap-break-word text-[15px] leading-6 text-white">
 {note.text}
 </p>
-<div className="mt-4 flex items-center gap-1 text-xs font-medium text-slate-500">
+)}
+<div className="mt-4 flex items-center gap-1 text-xs font-medium text-white">
 <MessageCircle
 aria-hidden="true"
 className="h-4 w-4"
@@ -780,7 +785,7 @@ Community {note.kind}
 </div>
 <div
 role="group"
-aria-label="React to this note"
+aria-label={`React to this ${note.kind}`}
 className="mt-4 flex items-center gap-2"
 >
 <button
@@ -823,6 +828,14 @@ fill={reactionSummaries[note.id]?.mine === "cold" ? "currentColor" : "none"}
 Cold
 <span>{reactionSummaries[note.id]?.cold ?? 0}</span>
 </button>
+<Link
+href={`/reply/${note.id}`}
+aria-label={`Reply to ${note.kind} by ${note.author}`}
+className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-blue-200 transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300"
+>
+<Reply aria-hidden="true" className="h-4 w-4" />
+Reply
+</Link>
 </div>
 
 </div>
@@ -852,71 +865,168 @@ activeCategory === "All notes"
 )}
 </section>
 
-<aside className="hidden space-y-4 lg:block">
-<div className="rounded-2xl border border-white/20 bg-white p-5 shadow-sm">
-<h2 className="flex items-center gap-2 font-bold text-blue-950">
-<Activity
-aria-hidden="true"
-className="h-4 w-4 text-blue-700"
-/>
+<aside className="grid gap-4 sm:grid-cols-2 md:col-span-2 lg:col-span-1 lg:block lg:space-y-4">
+<div className="rounded-2xl border border-violet-200/15 bg-gradient-to-br from-violet-400/10 via-blue-950 to-blue-950 p-5 shadow-lg shadow-black/10">
+<div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-200/10 bg-violet-300/10 text-violet-200">
+<UsersRound aria-hidden="true" className="h-5 w-5" />
+</div>
+<h2 className="mt-4 text-lg font-bold tracking-tight text-white">
+Find your people.
+</h2>
+<p className="mt-1 text-sm font-semibold text-violet-100">
+There&apos;s a place for your perspective.
+</p>
+<p className="mt-2 text-sm leading-6 text-blue-100/75">
+Join communities built around the things you love, the ideas you
+question, and the conversations you want to have.
+</p>
+<button
+type="button"
+onClick={() => setShowCommunityPicker((isOpen) => !isOpen)}
+aria-expanded={showCommunityPicker}
+aria-controls="community-discovery-options"
+className="mt-4 inline-flex items-center gap-2 rounded-full border border-violet-200/20 bg-violet-300/10 px-4 py-2.5 text-sm font-bold text-violet-100 transition hover:bg-violet-300/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-200"
+>
+Explore communities
+<span aria-hidden="true">→</span>
+</button>
+{showCommunityPicker && (
+<div
+id="community-discovery-options"
+className="mt-4 grid grid-cols-2 gap-2"
+aria-label="Choose a community to explore"
+>
+{visibleCategories.map((category) => (
+<button
+key={category}
+type="button"
+onClick={() => selectCommunity(category)}
+className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-xs font-semibold text-white/80 transition hover:border-violet-200/30 hover:bg-white/[0.08] hover:text-white"
+>
+{category}
+</button>
+))}
+{visibleCategories.length === 0 && (
+<p className="col-span-2 text-sm text-white/65">
+Show a community in the category list to explore it.
+</p>
+)}
+</div>
+)}
+</div>
+
+<DailyQuestionCard />
+
+<div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/[0.03] p-5 shadow-lg shadow-black/10">
+<div className="flex items-start justify-between gap-3">
+<div>
+<h2 className="flex items-center gap-2 font-bold text-white">
+<Activity aria-hidden="true" className="h-4 w-4 text-sky-300" />
 Trending notes
 </h2>
-<p className="mt-1 text-xs text-slate-500">
-From the most active communities
+<p className="mt-1 text-xs leading-5 text-blue-100/65">
+Conversations getting reactions right now
 </p>
+</div>
+<span className="rounded-full border border-sky-300/20 bg-sky-300/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-200">
+TOP 3
+</span>
+</div>
 {trendingNotes.length > 0 ? (
-<div className="mt-4 space-y-4">
+<div className="mt-4 space-y-3">
 {trendingNotes.map((note, index) => (
 <button
 key={note.id}
 type="button"
-onClick={() => setActiveCategory(note.category)}
-className="block w-full border-t border-slate-100 pt-3 text-left first:border-0 first:pt-0"
+onClick={() =>
+note.kind === "letter"
+? router.push(`/letter/${note.id}`)
+: setActiveCategory(note.category)
+}
+aria-label={
+note.kind === "letter"
+? `Read letter: ${note.title || `Letter from ${note.author}`}`
+: `Show ${note.category} notes`
+}
+className="group block w-full rounded-xl border border-white/[0.07] bg-blue-950/40 p-3 text-left transition hover:border-sky-300/30 hover:bg-white/[0.06] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
 >
-<span className="text-xs font-semibold text-blue-700">
-{index + 1}. {note.category}
+<div className="flex items-center gap-2">
+<span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-sky-300/10 text-xs font-bold text-sky-200">
+{index + 1}
 </span>
+<span className="text-xs font-semibold text-sky-200">{note.category}</span>
+<span className="ml-auto text-[11px] text-white/45">{formatTime(note.createdAt)}</span>
+</div>
 {note.title && (
-<span className="mt-1 block text-sm font-bold text-slate-800">
+<span className="mt-2 block text-sm font-bold leading-5 text-white group-hover:text-sky-100">
 {note.title}
 </span>
 )}
-<span className="mt-1 line-clamp-3 block text-sm leading-5 text-slate-600">
+{note.kind !== "letter" && (
+<span className="mt-2 line-clamp-3 block text-sm leading-5 text-blue-100/75">
 {note.text}
+</span>
+)}
+<span className="mt-3 flex items-center gap-3 text-[11px] font-medium text-white/50">
+<span className="inline-flex items-center gap-1">
+<Heart aria-hidden="true" className="h-3 w-3" />
+{reactionSummaries[note.id]?.good ?? 0}
+</span>
+<span className="inline-flex items-center gap-1">
+<MessageCircle aria-hidden="true" className="h-3 w-3" />
+View community
+</span>
 </span>
 </button>
 ))}
 </div>
 ) : (
-<p className="mt-4 text-sm leading-6 text-slate-500">
-Trending notes from the community will show up here.
+<p className="mt-4 rounded-xl border border-dashed border-white/15 bg-blue-950/30 p-4 text-sm leading-6 text-blue-100/65">
+The first community conversations will appear here. Be the one to get things started.
 </p>
 )}
 </div>
-<div className="rounded-2xl bg-blue-900 p-5 text-white shadow-sm">
-<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-blue-200">
+
+<div className="overflow-hidden rounded-2xl border border-rose-200/10 bg-gradient-to-br from-rose-400/10 via-blue-950 to-blue-950 p-5 shadow-lg shadow-black/10">
+<div className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200/10 bg-rose-300/10 text-rose-200">
 <Heart aria-hidden="true" className="h-5 w-5" />
 </div>
-<h2 className="mt-4 text-lg font-bold">
+<h2 className="mt-4 text-lg font-bold tracking-tight text-white">
 Belong before you agree.
 </h2>
-<p className="mt-2 text-sm leading-6 text-blue-100/80">
-Good conversations start with curiosity. Keep it kind, make
-room for different views, and help everyone feel welcome.
+<p className="mt-2 text-sm leading-6 text-blue-100/75">
+Good conversations start with curiosity. Keep it kind, make room for different views, and help everyone feel welcome.
 </p>
+<div className="mt-4 flex items-center gap-2 text-xs font-semibold text-rose-200/90">
+<Heart aria-hidden="true" className="h-3.5 w-3.5" />
+Different views. Shared respect.
 </div>
-<div className="rounded-2xl border border-white/20 bg-white p-5 shadow-sm">
-<h2 className="flex items-center gap-2 font-bold text-blue-950">
-<Sparkles
-aria-hidden="true"
-className="h-4 w-4 text-blue-600"
-/>
-Made for your mix
+</div>
+
+<div className="rounded-2xl border border-sky-300/15 bg-gradient-to-br from-sky-400/10 via-blue-950 to-blue-950 p-5 shadow-lg shadow-black/10">
+<div className="flex h-10 w-10 items-center justify-center rounded-xl border border-sky-200/10 bg-sky-300/10 text-sky-200">
+<UsersRound aria-hidden="true" className="h-5 w-5" />
+</div>
+<h2 className="mt-4 text-lg font-bold tracking-tight text-white">
+Outside your bubble.
 </h2>
-<p className="mt-2 text-sm leading-6 text-slate-600">
-Politics, games, style, faith, and all the interests that
-make you you. Show only the communities you want to see.
+<p className="mt-2 text-sm leading-6 text-blue-100/75">
+<span className="mb-1 block font-semibold text-sky-100">
+Discover a different point of view.
+</span>
+Explore perspectives beyond your usual feed. Find thoughtful
+discussions, challenge your assumptions, and see what you might be
+missing.
 </p>
+<button
+type="button"
+onClick={discoverPerspective}
+disabled={visibleCategories.length === 0}
+className="mt-4 inline-flex items-center gap-2 rounded-full bg-sky-300 px-4 py-2.5 text-sm font-bold text-blue-950 transition hover:bg-sky-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-200 disabled:cursor-not-allowed disabled:opacity-50"
+>
+Discover perspectives
+<Sparkles aria-hidden="true" className="h-4 w-4" />
+</button>
 </div>
 </aside>
 </div>

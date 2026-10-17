@@ -69,7 +69,7 @@ toast.error("Failed to log out. Please try again.");
 
 const menuGroups = [
 [
-{ href: "/profile", label: "Profile", icon: UserRound },
+{ href: user ? `/profile/${user.id}` : "/login", label: "Profile", icon: UserRound },
 
 { href: "/settings", label: "Settings", icon: Settings },
 ],
@@ -137,7 +137,7 @@ role="status"
 
 <button
 type="button"
-onClick={() => router.push("/create-post")}
+onClick={() => router.push("/createnote/note")}
 aria-label="Create post"
 className="flex items-center  rounded-full p-2 bg-blue-400  hover:text-white hover:bg-blue-500 cursor-pointer"
 >
